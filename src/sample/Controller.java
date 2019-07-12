@@ -1,10 +1,11 @@
 package sample;
 
-import Java.Connection.ConnectionDB;
+
 import Java.repositories.UserRepository;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
@@ -12,23 +13,26 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 
 import javax.imageio.ImageIO;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import javax.mail.Session;
 import java.io.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.*;
-import java.io.*;
+import java.util.Properties;
+
 
 
 import java.util.Properties;
-import javax.jms.Message;
-import javax.jms.Session;
-import javax.mail.*;
-import javax.mail.internet.*;
-import javax.activation.*;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 
 public class Controller {
     public Button buttonGetAccess;
@@ -106,6 +110,7 @@ public class Controller {
 
 
         createScreenShot();
+     //   sendMail();
     }
 
     private String getCurrentDateTime(){
@@ -156,6 +161,50 @@ public class Controller {
         }
     }
     private void sendMail(){
+        /*
+        String to = "receive@abc.om";         // sender email
+        String from = "sender@abc.com";       // receiver email
+        String host = "127.0.0.1";            // mail server host
+
+        */
+
+
+        String to = "cnk-120@mail.ru";         // sender email
+        String from = "zemlyanscky.grigorij@yandex.ru";       // receiver email
+        String host = "localhost";            // mail server host
+
+        Properties properties = System.getProperties();
+        System.out.println( "1");
+        properties.setProperty("mail.smtp.host", host);
+        System.out.println( "2");
+        Session session = Session.getDefaultInstance(properties); // default session
+        System.out.println( "3");
+
+        try {
+            MimeMessage message = new MimeMessage(session); // email message
+
+            message.setFrom(new InternetAddress(from)); // setting header fields
+
+            message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+
+            message.setSubject("Test Mail from Java Program"); // subject line
+
+            // actual mail body
+            message.setText("You can send mail from Java program by using mail API, but you need" +
+                    "couple of more JAR files e.g. smtp.jar and activation.jar");
+
+            // Send message
+            Transport.send(message); System.out.println("Email Sent successfully....");
+        } catch (MessagingException mex){ mex.printStackTrace(); }
+
+
+
+
+
+
+
+
+/*
         // Сюда необходимо подставить адрес получателя сообщения
         String to = "sendToMailAddress";
         String from = "sendFromMailAddress";
@@ -234,6 +283,8 @@ public class Controller {
                 else mex = (MessagingException)ex;
             }
         }
+
+*/
     }
 
 

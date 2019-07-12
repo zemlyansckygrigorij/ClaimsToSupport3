@@ -1,5 +1,7 @@
 package sample;
 
+import Java.Connection.ConnectionDB;
+import Java.repositories.UserRepository;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -7,9 +9,12 @@ import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 
 import java.io.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 public class Controller {
@@ -68,8 +73,14 @@ public class Controller {
     public void SendClaim() {
         System.out.println(" SendClaim() ");
         String error = listError.getSelectionModel().getSelectedItem();
+        System.out.println( "1");
         if(error==null){
             System.out.println( "выберите ошибку из списка");
+            return;
+        }
+        System.out.println( "2");
+        if(UserRepository.checkUser(textFieldUser.getText())){
+            System.out.println( "такого пользователя нет");
             return;
         }
 
@@ -103,5 +114,8 @@ public class Controller {
 
 
     }
+
+
+
 
 }

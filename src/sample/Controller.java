@@ -12,12 +12,19 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
 import javax.imageio.ImageIO;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.mail.Session;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -33,6 +40,10 @@ import javax.mail.MessagingException;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.mail.*;
+import javax.mail.internet.*;
+
+import java.util.Properties;
 
 public class Controller {
     public Button buttonGetAccess;
@@ -40,6 +51,10 @@ public class Controller {
     public TextField textFieldUser;
     public ListView<String> listError;
     public TextArea additionalDescription;
+
+    private String path = "";
+    private String pictureName = "";
+    private String messageText = "";
     @FXML
     AnchorPane mainForm;
     ObservableList<String> errors = FXCollections.observableArrayList();
@@ -53,12 +68,15 @@ public class Controller {
         // Only allowed to select single row in the ListView.
         listError.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         textFieldUser.setText(getCurrentUser());
-        additionalDescription.setWrapText(true);
+        additionalDescription.setWrapText(true);//перенос строк
+        path = System.getProperty("user.dir");
+
+
     }
 
     private void getListErrorFromFile() {
         try {
-            FileInputStream inF = new FileInputStream("E://ListError.txt");
+            FileInputStream inF = new FileInputStream(path+"/ListError.txt");
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inF,"Cp1251"));
             String line = null;
             while ((line = bufferedReader.readLine()) != null) {
@@ -72,7 +90,20 @@ public class Controller {
             e.printStackTrace();
         }
 
+        ///////////////////////////////////////////////////////////////////
+        //get data change file
+        Path file = Paths.get("E://ListError.txt");
+        BasicFileAttributes attr = null;
+        try {
+            attr = Files.readAttributes(file, BasicFileAttributes.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("lastModifiedTime: " + attr.lastModifiedTime());
 
+
+
+        /////////////////////////////////////////////////////////
     }
 
 
@@ -95,14 +126,16 @@ public class Controller {
             System.out.println( "такого пользователя нет");
             return;
         }
+        createMessage();
         writeToFile();
+        sendMail("");
 
     }
     public void GetAccess() {
 
         runTeamViewer();
         try {
-            Thread.sleep(20000);
+            Thread.sleep(50000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -110,7 +143,7 @@ public class Controller {
 
 
         createScreenShot();
-     //   sendMail();
+        sendMail(path + pictureName);
     }
 
     private String getCurrentDateTime(){
@@ -119,13 +152,17 @@ public class Controller {
         return dateFormat.format(date);
     }
 
+    private void createMessage(){
+        messageText = getCurrentDateTime()+" "+textFieldUser.getText() +" "+ listError.getSelectionModel().getSelectedItem()+" "+additionalDescription.getText();
+    }
 
     private void writeToFile(){
-        String filename= "e://log.txt";
+        String filename= path+"/log.txt";
         FileWriter fw = null; //the true will append the new data
         try {
             fw = new FileWriter(filename,true);
-            fw.write(getCurrentDateTime()+" "+textFieldUser.getText() +" "+ listError.getSelectionModel().getSelectedItem()+" "+additionalDescription.getText()+ " \n");//appends the string to the file
+
+            fw.write(messageText+ " \n");//appends the string to the file
             fw.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -155,136 +192,75 @@ public class Controller {
         }
         BufferedImage screenShot = robot.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
         try {
-            ImageIO.write(screenShot, "JPG", new File("d:\\"+formatter.format(now.getTime())+".jpg"));
+            pictureName = formatter.format(now.getTime())+".jpg";
+            ImageIO.write(screenShot, "JPG", new File(path+pictureName));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    private void sendMail(){
-        /*
-        String to = "receive@abc.om";         // sender email
-        String from = "sender@abc.com";       // receiver email
-        String host = "127.0.0.1";            // mail server host
+    private void sendMail(String file){
+System.out.println(file);
+        //Отправить E-Mail
 
-        */
+        //Скачать javamail api (javax.mail.jar) отсюда http://www.oracle.com/technetwork/java/javamail/index.html
+        //В Intellij IDEA в меню File->Project Structure...->Libraries нажать плюсик и добавить этот файл к проекту
 
+        //Тто же самое сделать для JAF (activation.jar): http://www.oracle.com/technetwork/java/javase/jaf-136260.html
 
-        String to = "cnk-120@mail.ru";         // sender email
-        String from = "zemlyanscky.grigorij@yandex.ru";       // receiver email
-        String host = "localhost";            // mail server host
-
-        Properties properties = System.getProperties();
-        System.out.println( "1");
-        properties.setProperty("mail.smtp.host", host);
-        System.out.println( "2");
-        Session session = Session.getDefaultInstance(properties); // default session
-        System.out.println( "3");
-
-        try {
-            MimeMessage message = new MimeMessage(session); // email message
-
-            message.setFrom(new InternetAddress(from)); // setting header fields
-
-            message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
-
-            message.setSubject("Test Mail from Java Program"); // subject line
-
-            // actual mail body
-            message.setText("You can send mail from Java program by using mail API, but you need" +
-                    "couple of more JAR files e.g. smtp.jar and activation.jar");
-
-            // Send message
-            Transport.send(message); System.out.println("Email Sent successfully....");
-        } catch (MessagingException mex){ mex.printStackTrace(); }
+        //Если что-нибудь не получается, возможно сам почтовик блокирует авторизацию через ненадёжные приложения. (так по-умалчанию делает gmail.com и это отключается в личном кабинета)
 
 
+        final String username = "cnk-120@mail.ru";
+        final String password = "uhbujhbq";
 
-
-
-
-
-
-/*
-        // Сюда необходимо подставить адрес получателя сообщения
-        String to = "sendToMailAddress";
-        String from = "sendFromMailAddress";
-        // Сюда необходимо подставить SMTP сервер, используемый для отправки
-        String host = "smtpserver.yourisp.net";
-
-        // Создание свойств, получение сессии
         Properties props = new Properties();
-
-        // При использовании статического метода Transport.send()
-        // необходимо указать через какой хост будет передано сообщение
-        props.put("mail.smtp.host", host);
-        // Включение debug-режима
-        props.put("mail.debug", "true");
-        //Включение авторизации
         props.put("mail.smtp.auth", "true");
-        // Получение сессии
-        Session session = Session.getInstance(props);
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.mail.ru");
+        props.put("mail.smtp.port", "587");
+
+        Session session = Session.getInstance(props,
+                new javax.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
 
         try {
-            // Получение объекта транспорта для передачи электронного сообщения
-            Transport bus = session.getTransport("smtp");
 
-            // Устанавливаем соединение один раз
-            // Метод Transport.send() отсоединяется после каждой отправки
-            //bus.connect();
-            // Обычно для SMTP сервера необходимо указать логин и пароль
-            bus.connect("smtpserver.yourisp.net", "username", "password");
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress("cnk-120@mail.ru"));//
+            message.setRecipients(Message.RecipientType.TO,
+                    InternetAddress.parse("zemlyanscky.grigorij@yandex.ru"));
+            message.setSubject("Testing Subject");
+            message.setText(messageText
+                    + "\n\n No spam to my email, please!");
 
-            // Создание объекта сообщения
-            Message msg = new MimeMessage(session);
+            MimeBodyPart messageBodyPart = new MimeBodyPart();
 
-            // Установка атрибутов сообщения
-            msg.setFrom(new InternetAddress(from));
-            InternetAddress[] address = {new InternetAddress(to)};
-            msg.setRecipients(Message.RecipientType.TO, address);
-            // Парсинг списка адресов разделённых пробелами. Строгий синтаксис
-            msg.setRecipients(Message.RecipientType.CC,
-                    InternetAddress.parse(to, true));
-            // Парсинг списка адресов разделённых пробелами. Более мягкий синтаксис.
-            msg.setRecipients(Message.RecipientType.BCC,
-                    InternetAddress.parse(to, false));
+            Multipart multipart = new MimeMultipart();
 
-            msg.setSubject("Тест отправки E-Mail с помощью Java");
-            msg.setSentDate(new Date());
+            messageBodyPart = new MimeBodyPart();
 
-            // Установка контента сообщения и отправка
-            setTextContent(msg);
-            msg.saveChanges();
-            bus.sendMessage(msg, address);
+            if(!file.equals("")) {
 
-            setMultipartContent(msg);
-            msg.saveChanges();
-            bus.sendMessage(msg, address);
+                DataSource source = new FileDataSource(path + pictureName);
+                messageBodyPart.setDataHandler(new DataHandler(source));
+                messageBodyPart.setFileName(file);
+                multipart.addBodyPart(messageBodyPart);
 
-            setFileAsAttachment(msg, "C:/WINDOWS/CLOUD.GIF");
-            msg.saveChanges();
-            bus.sendMessage(msg, address);
-
-            setHTMLContent(msg);
-            msg.saveChanges();
-            bus.sendMessage(msg, address);
-
-            bus.close();
-
-        }
-        catch (MessagingException mex) {
-            // Печать информации обо всех возможных возникших исключениях
-            mex.printStackTrace();
-            // Получение вложенного исключения
-            while (mex.getNextException() != null) {
-                // Получение следующего исключения в цепочке
-                Exception ex = mex.getNextException();
-                ex.printStackTrace();
-                if (!(ex instanceof MessagingException)) break;
-                else mex = (MessagingException)ex;
+                message.setContent(multipart);
             }
+            System.out.println("Sending");
+
+            Transport.send(message);
+
+            System.out.println("Done");
+
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
         }
 
-*/
     }
 
 

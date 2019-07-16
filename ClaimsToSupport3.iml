@@ -16,5 +16,7 @@
     <orderEntry type="library" name="mail" level="project" />
     <orderEntry type="library" name="activation1" level="project" />
     <orderEntry type="library" name="gson-2.6.2-javadoc" level="project" />
+    <orderEntry type="library" name="java-json" level="project" />
+    <orderEntry type="library" name="org.apache.commons.io" level="project" />
   </component>
 </module>

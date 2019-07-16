@@ -1,6 +1,7 @@
 package sample;
 
 
+import Java.Settings;
 import Java.repositories.UserRepository;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -8,6 +9,7 @@ import javafx.fxml.FXML;
 
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
@@ -27,10 +29,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Properties;
-
+import java.util.*;
 
 
 import java.util.Properties;
@@ -46,22 +45,27 @@ import javax.mail.internet.*;
 import java.util.Properties;
 
 public class Controller {
-    public Button buttonGetAccess;
-    public Button buttonSendClaim;
-    public TextField textFieldUser;
-    public ListView<String> listError;
-    public TextArea additionalDescription;
 
-    private String path = "";
+    @FXML private TextField textFieldUser;
+    @FXML private ListView<String> listError;
+    @FXML private TextArea additionalDescription;
+    @FXML private Label messageError;
+    @FXML private AnchorPane mainForm;
+    @FXML private Button buttonGetAccess;
+    @FXML private Button buttonSendClaim;
+
+    private String path = System.getProperty("user.dir");
     private String pictureName = "";
     private String messageText = "";
-    @FXML
-    AnchorPane mainForm;
+    Map<String, String> settings = Settings.getSettings();
+
     ObservableList<String> errors = FXCollections.observableArrayList();
+
 
     // инициализация приложения
     @FXML
     public void initialize() {
+        checkFolderPictures();
         getListErrorFromFile();
         listError.getItems().addAll(errors );
 
@@ -69,8 +73,6 @@ public class Controller {
         listError.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         textFieldUser.setText(getCurrentUser());
         additionalDescription.setWrapText(true);//перенос строк
-        path = System.getProperty("user.dir");
-
 
     }
 
@@ -109,8 +111,24 @@ public class Controller {
 
 
     private String getCurrentUser() {
-        String username = System.getProperty("user.name");
-        return username;
+        System.out.println(path+"\\user.txt");
+        String user = "";
+        try {
+            FileInputStream inF = new FileInputStream(path+"\\user.txt");
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inF,"Cp1251"));
+
+            while ((user = bufferedReader.readLine()) != null) {
+                break;
+            }
+            bufferedReader.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return user;
     }
 
 
@@ -120,10 +138,12 @@ public class Controller {
         String error = listError.getSelectionModel().getSelectedItem();
         if(error==null){
             System.out.println( "выберите ошибку из списка");
+            messageError.setText("выберите ошибку из списка");
             return;
         }
         if(!UserRepository.checkUser(textFieldUser.getText().trim())){
             System.out.println( "такого пользователя нет");
+            messageError.setText( "такого пользователя нет");
             return;
         }
         createMessage();
@@ -143,7 +163,7 @@ public class Controller {
 
 
         createScreenShot();
-        sendMail(path + pictureName);
+        sendMail(path+"\\pictures\\"+pictureName);
     }
 
     private String getCurrentDateTime(){
@@ -166,18 +186,33 @@ public class Controller {
             fw.close();
         } catch (IOException e) {
             e.printStackTrace();
+            Settings.writeError(e);
         }
 
 
     }
+    private void checkFolderPictures(){
+        Path pathPictures = Paths.get(path+"\\pictures\\");
+
+        if (!Files.exists(pathPictures)) {
+            // действия, если папка существует
+            try {
+                Files.createDirectories(pathPictures);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Settings.writeError(e);
+            }
+        }
+    }
     private void runTeamViewer(){
         ProcessBuilder p = new ProcessBuilder();
-        p.command("C:\\Program Files\\TeamViewerQS.exe");
+        p.command(settings.get("pathTeamviewer"));
 
         try {
             p.start();
         } catch (IOException e) {
             e.printStackTrace();
+            Settings.writeError(e);
         }
 
     }
@@ -193,9 +228,10 @@ public class Controller {
         BufferedImage screenShot = robot.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
         try {
             pictureName = formatter.format(now.getTime())+".jpg";
-            ImageIO.write(screenShot, "JPG", new File(path+pictureName));
+            ImageIO.write(screenShot, "JPG", new File(path+"\\pictures\\"+pictureName));
         } catch (IOException e) {
             e.printStackTrace();
+            Settings.writeError(e);
         }
     }
     private void sendMail(String file){
@@ -210,28 +246,29 @@ System.out.println(file);
         //Если что-нибудь не получается, возможно сам почтовик блокирует авторизацию через ненадёжные приложения. (так по-умалчанию делает gmail.com и это отключается в личном кабинета)
 
 
-        final String username = "cnk-120@mail.ru";
-        final String password = "uhbujhbq";
+        final String eMailFrom = settings.get("eMailFrom");
+        final String password = settings.get("password");
 
         Properties props = new Properties();
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.host", "smtp.mail.ru");
-        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.auth",settings.get("mailSmtpAuth"));
+        System.out.println(settings.get("mailSmtpStarttlsEnable"));
+        props.put("mail.smtp.starttls.enable", settings.get("mailSmtpStarttlsEnable"));
+        props.put("mail.smtp.host", settings.get("mailSmtpHost"));
+        props.put("mail.smtp.port",settings.get("mailSmtpPort"));
 
         Session session = Session.getInstance(props,
                 new javax.mail.Authenticator() {
                     protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(username, password);
+                        return new PasswordAuthentication(eMailFrom, password);
                     }
                 });
 
         try {
 
             Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("cnk-120@mail.ru"));//
+            message.setFrom(new InternetAddress(eMailFrom));//
             message.setRecipients(Message.RecipientType.TO,
-                    InternetAddress.parse("zemlyanscky.grigorij@yandex.ru"));
+            InternetAddress.parse(settings.get("eMailTo")));
             message.setSubject("Testing Subject");
             message.setText(messageText
                     + "\n\n No spam to my email, please!");
@@ -244,21 +281,17 @@ System.out.println(file);
 
             if(!file.equals("")) {
 
-                DataSource source = new FileDataSource(path + pictureName);
+                DataSource source = new FileDataSource(path+"\\pictures\\"+pictureName);
                 messageBodyPart.setDataHandler(new DataHandler(source));
                 messageBodyPart.setFileName(file);
                 multipart.addBodyPart(messageBodyPart);
 
                 message.setContent(multipart);
             }
-            System.out.println("Sending");
-
             Transport.send(message);
-
-            System.out.println("Done");
-
         } catch (MessagingException e) {
             throw new RuntimeException(e);
+
         }
 
     }

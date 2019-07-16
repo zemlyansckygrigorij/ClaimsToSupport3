@@ -58,5 +58,9 @@
           </Menu>
         </menus>
       </MenuBar>
+      <Label fx:id="messageError" text="  " layoutX="104.0" layoutY="344.0" prefHeight="17.0" prefWidth="400.0" >
+          <font>
+              <Font name="Arial" size="18.0" />
+          </font></Label>
    </children>
 </AnchorPane>

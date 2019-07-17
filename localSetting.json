@@ -1,0 +1,20 @@
+{
+  "serverPath": "D:\\",
+  "pathTeamviewer": "C:\\Program Files\\TeamViewerQS.exe",
+  
+  "eMailFrom": "cnk-120@mail.ru",
+  "password": "uhbujhbq",
+  "eMailTo": "zemlyanscky.grigorij@yandex.ru",
+  
+  "dbName": "cratu",
+  "userName": "root",
+  "host": "localhost",
+  "port": "3306",
+  "passwordDB": "qazwsx",
+  
+  "mailSmtpAuth": "true",
+  "mailSmtpStarttlsEnable":"true",
+  "mailSmtpHost": "smtp.mail.ru",
+  "mailSmtpPort": "587"
+  
+}

@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -42,29 +43,27 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.*;
 import javax.mail.internet.*;
 
-import java.util.Properties;
-
 public class Controller {
-
+     // элементы формы sample.fxml
     @FXML private TextField textFieldUser;
     @FXML private ListView<String> listError;
     @FXML private TextArea additionalDescription;
     @FXML private Label messageError;
-    @FXML private AnchorPane mainForm;
-    @FXML private Button buttonGetAccess;
-    @FXML private Button buttonSendClaim;
 
-    private String path = System.getProperty("user.dir");
     private String pictureName = "";
     private String messageText = "";
+    // получить местоположение данного jar файла
+    private String path = System.getProperty("user.dir");
+   // получить необходимые настройки
     Map<String, String> settings = Settings.getSettings();
-
+//создать список ошибок
     ObservableList<String> errors = FXCollections.observableArrayList();
 
 
     // инициализация приложения
     @FXML
     public void initialize() {
+        checkUpdateListErrorFromFile();
         checkFolderPictures();
         getListErrorFromFile();
         listError.getItems().addAll(errors );
@@ -92,23 +91,47 @@ public class Controller {
             e.printStackTrace();
         }
 
-        ///////////////////////////////////////////////////////////////////
+    }
+    private void checkUpdateListErrorFromFile(){
+        File fileServer = new File(settings.get("serverPath")+"ListError.txt");
+        File fileLocal = new File(path +"\\ListError.txt");
+/*
         //get data change file
-        Path file = Paths.get("E://ListError.txt");
-        BasicFileAttributes attr = null;
+        Path fileServer = Paths.get(settings.get("serverPath")+"ListError.txt");
+        Path fileLocal = Paths.get(path +"\\ListError.txt");
+        BasicFileAttributes attrServer = null;
+        BasicFileAttributes attrLocal = null;
         try {
-            attr = Files.readAttributes(file, BasicFileAttributes.class);
+            attrServer = Files.readAttributes(fileServer, BasicFileAttributes.class);
+            attrLocal = Files.readAttributes(fileLocal, BasicFileAttributes.class);
+
+            if(attrServer.lastModifiedTime().compareTo(attrLocal.lastModifiedTime())>0){
+                File file = new File(path +"\\ListError.txt");
+                file.delete();
+                Files.copy(settings.get("serverPath")+"ListError.txt", path +"\\ListError.txt");
+            }
+            System.out.println(attrServer.lastModifiedTime().compareTo(attrLocal.lastModifiedTime()));
+
+         //   if(attrLocal.lastModifiedTime().){}
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("lastModifiedTime: " + attr.lastModifiedTime());
-
-
-
-        /////////////////////////////////////////////////////////
+        //System.out.println("lastModifiedTime: " + attr.lastModifiedTime());
+*/
     }
+    private boolean checkFilesUpdate(File youngFile,File oldFile){
+        try {
+            BasicFileAttributes youngAttr =Files.readAttributes(youngFile.toPath(), BasicFileAttributes.class);
+            BasicFileAttributes oldAttr = Files.readAttributes(oldFile.toPath(), BasicFileAttributes.class);
+
+            return youngAttr.lastModifiedTime().compareTo(youngAttr.lastModifiedTime())>0;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 
+        return true;
+    }
 
     private String getCurrentUser() {
         System.out.println(path+"\\user.txt");

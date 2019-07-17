@@ -1,0 +1,5 @@
+serverPath: 
+pathTeamviewer: C:\Program Files\TeamViewerQS.exe
+placePictures:
+login:cnk-120@mail.ru
+password: uhbujhbq
